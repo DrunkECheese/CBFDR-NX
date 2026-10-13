@@ -29,6 +29,27 @@ extern "C" void conker_light_glow_depth(uint8_t* rdram, recomp_context* ctx) {
     ctx->r11 = 0;
 }
 
+// Sprite pieces less than a pixel across (the smoke puffs over Windy's beehive, as one starts).
+//
+// func_15095D34 draws a piece of a sprite (speech bubbles, the tickly bees, puffs of smoke...) as a
+// rectangle: its width and height (D_800D2C70 and D_800D2C74, floats the caller sets) are truncated to
+// whole pixels, and the texture's step across it is divided by them. The compiler guards each division
+// with a break (break 7, divide by zero), and the N64 stops there as the recompiled game does: a piece
+// under a pixel wide crashed the game (do_break from func_15095D34, with func_1516D738's puffs). As the
+// N64 would stop there too, the original game likely never sends one; the likely source is the sprite
+// cull drawing what's beside the 4:3 frame in widescreen (widescreen.cpp, issue #101), though that isn't
+// proven. A size that truncates to 0 (between -1 and 1) is made a pixel, drawn as one, not a crash;
+// others, negative ones among them, are left as they are.
+// func_15095D34 at 0x15095D58, with the width in $f0 and the height in $f2, before they're truncated.
+extern "C" void conker_sprite_piece_size(uint8_t* rdram, recomp_context* ctx) {
+    if (ctx->f0.fl > -1.0f && ctx->f0.fl < 1.0f) {
+        ctx->f0.fl = 1.0f;
+    }
+    if (ctx->f2.fl > -1.0f && ctx->f2.fl < 1.0f) {
+        ctx->f2.fl = 1.0f;
+    }
+}
+
 // The tickly bees in front of the sunflower (issue #101; Windy's pollination quest).
 //
 // func_15168118 draws each bee by calling func_15095760 (0x15168640), which gives the bee a depth from its place in
