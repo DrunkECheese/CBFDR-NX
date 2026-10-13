@@ -394,10 +394,11 @@ void conker::local_achievements::game_frame(uint8_t* rdram) {
     baseline = merged(baseline, bits);
 }
 
-// TEMP-DEBUG (cash): every change to player 1's cash in the story, to learn what a pile gives and how many there
-// are. func_15085710 (player, what, amount) changes the players' stats (0x800D2138 on, 0x1C bytes a player): 9 sets
-// the cash, 10 adds to it, 11 takes from it. In multiplayer the same field is the score (it adds nothing then).
-// A hook at its first instruction (conker.toml), where its arguments are as called.
+// Player 1's cash in the story: What a Day (the end's million), and a line on the console for each change (what a
+// money pile gives, for an achievement for collecting them all, and for reports). func_15085710 (player, what,
+// amount) changes the players' stats (0x800D2138 on, 0x1C bytes a player): 9 sets the cash, 10 adds to it, 11 takes
+// from it. In multiplayer the same field is the score (it adds nothing then). A hook at its first instruction
+// (conker.toml), where its arguments are as called.
 #include "recomp.h"
 #include "librecomp/mods.hpp"
 
