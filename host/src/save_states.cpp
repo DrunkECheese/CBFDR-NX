@@ -13,15 +13,14 @@
 // few places all through the game, so that's within a frame or so almost always; should they not, it
 // keeps trying for a few seconds, then says it couldn't.
 //
-// Each state holds, besides the runtime's (the game's memory, each thread's registers, the clock and
-// the timers, the VI's state), the RetroAchievements progress (how far each achievement is toward
-// unlocking), which is put back as it loads. Loading is refused with RetroAchievements' Hardcore mode
-// on, as its rules forbid it. The game's own save file (the EEPROM) isn't in a state: loading one never
-// takes back what the game has saved.
+// Each state holds the runtime's (the game's memory, each thread's registers, the clock and the timers,
+// the VI's state). The game's own save file (the EEPROM) isn't in a state: loading one never takes back
+// what the game has saved.
 //
 // The file: "CBFDSTAT", the file's version (u32), the program's version (u32 length, text), when it was
-// taken (u64, seconds since 1970), the achievements' progress (u32 length, bytes), then the runtime's
-// state (u32 length, bytes; librecomp/save_states.hpp).
+// taken (u64, seconds since 1970), a block for achievements' progress (u32 length, bytes: empty now; it
+// held RetroAchievements', which was removed, and stays so the files keep their layout), then the
+// runtime's state (u32 length, bytes; librecomp/save_states.hpp).
 
 #include <atomic>
 #include <chrono>
@@ -236,7 +235,7 @@ namespace {
             log_line("[save] slot %d taken after %u tries, thread %d running\n%s", request_slot, attempts,
                 (int)osGetThreadId(rdram, NULLPTR),
                 recomp::save_states::describe_current_threads(rdram).c_str());
-            write_state(request_slot, std::move(state), conker::achievements::save_progress());
+            write_state(request_slot, std::move(state), {});
             conker::notices::show("State saved to slot " + std::to_string(request_slot));
             finish();
             return;
@@ -247,7 +246,6 @@ namespace {
         switch (result) {
             case recomp::save_states::LoadResult::Loaded:
                 log_line("[load] slot %d loaded after %u tries", request_slot, attempts);
-                conker::achievements::load_progress(load_progress);
                 conker::notices::show("Loaded the state in slot " + std::to_string(request_slot));
                 finish();
                 break;
@@ -304,10 +302,6 @@ namespace {
 
     void ask_to_load() {
         if (request.load() != Request::None) {
-            return;
-        }
-        if (conker::achievements::hardcore()) {
-            conker::notices::show("States can't be loaded in RetroAchievements' Hardcore mode");
             return;
         }
         // The file is read here (once the safe point callback is done with any request, nothing else touches

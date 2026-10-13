@@ -216,21 +216,12 @@ namespace conker {
         // From the game thread, as the game starts a frame's display list: loads the game's
         // achievements once logged in, then checks them against the game's memory.
         void game_frame(uint8_t* rdram);
-        // Save states (save_states.cpp), from the idle moment: the achievements' progress (how far
-        // each is toward unlocking), to keep in a state and to put back as it's loaded.
-        std::vector<uint8_t> save_progress();
-        void load_progress(std::span<const uint8_t> progress);
-        // Whether RetroAchievements' Hardcore mode is on (it forbids loading states).
-        bool hardcore();
     }
 #else
     namespace achievements {
         inline void init() {}
         inline void add_tab() {}
         inline void game_frame(uint8_t*) {}
-        inline std::vector<uint8_t> save_progress() { return {}; }
-        inline void load_progress(std::span<const uint8_t>) {}
-        inline bool hardcore() { return false; }
     }
 #endif
 
