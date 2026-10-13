@@ -50,6 +50,8 @@ namespace {
     constexpr uint32_t scene_count = 0xCC;
     // More new bits than this in one frame: a save's data read in, not scenes reached as you play.
     constexpr int quiet_threshold = 3;
+    // How many bits a new game has set at the menu (measured: 4).
+    constexpr int new_game_bits = 4;
 
     // The scene for each achievement, by its index in the game's table, with the table's name for it.
     constexpr int every_scene = -1;
@@ -95,24 +97,26 @@ namespace {
         { "bank", "Heist Society", "Arrive at the bank.", 0xAF },                                // Bank Entrance
         { "vault", "Safe Cracker", "Reach the bank vault.", 0xB2 },                              // Bank Vault
         { "alien", "Chestburster", "Fight the alien.", 0xB6 },                                   // Fight The Alien
-        { "credits", "What a Day", "Finish the game.", 0xC7 },                                   // End of Game Cutscene and Credits
+        // End of Game Cutscene and Credits, though a finished save hasn't its bit: also the end's million (finish_game).
+        { "credits", "What a Day", "Finish the game.", 0xC7 },
         { "every_scene", "Every Chapter", "Reach every scene in the Chapters menu.", every_scene },
     };
     constexpr size_t achievement_count = std::size(achievement_list);
 
     // The scenes "Every Chapter" needs: the table's named story scenes (not the multiplayer ones, the logo, or
-    // the deaths), as a finished save has them all.
+    // the deaths) that a finished save has, 102 of the 105 (measured on one): not "Sunflower Babe Bounceable"
+    // (0x38), "Canyon End Tediz" (0x97) or "End of Game Cutscene and Credits" (0xC7), which it never set.
     bool counts_for_every_scene(uint32_t scene) {
         static const std::vector<bool> scenes = [] {
             std::vector<bool> named(scene_count, false);
             // The named entries of the table, by index.
             for (uint32_t index : { 0x00, 0x04, 0x05, 0x06, 0x09, 0x0A, 0x0B, 0x14, 0x19, 0x1C, 0x22, 0x23, 0x27, 0x2A, 0x2B,
-                     0x2C, 0x2D, 0x36, 0x37, 0x38, 0x3B, 0x3C, 0x3D, 0x3F, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x48,
+                     0x2C, 0x2D, 0x36, 0x37, 0x3B, 0x3C, 0x3D, 0x3F, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x48,
                      0x4B, 0x4C, 0x4D, 0x4F, 0x50, 0x51, 0x53, 0x55, 0x57, 0x59, 0x5E, 0x60, 0x62, 0x66, 0x67, 0x68,
                      0x69, 0x6B, 0x6C, 0x6E, 0x70, 0x71, 0x72, 0x73, 0x75, 0x78, 0x7A, 0x7B, 0x7C, 0x7E, 0x82, 0x83,
-                     0x84, 0x86, 0x87, 0x88, 0x8A, 0x8D, 0x8E, 0x90, 0x91, 0x92, 0x93, 0x94, 0x96, 0x97, 0x9A, 0x9B,
+                     0x84, 0x86, 0x87, 0x88, 0x8A, 0x8D, 0x8E, 0x90, 0x91, 0x92, 0x93, 0x94, 0x96, 0x9A, 0x9B,
                      0x9C, 0x9E, 0x9F, 0xA1, 0xA2, 0xA3, 0xA4, 0xA6, 0xA7, 0xA9, 0xAB, 0xAD, 0xAF, 0xB1, 0xB2, 0xB3,
-                     0xB4, 0xB5, 0xB6, 0xBF, 0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC7 }) {
+                     0xB4, 0xB5, 0xB6, 0xBF, 0xC0, 0xC1, 0xC2, 0xC3, 0xC4 }) {
                 named[index] = true;
             }
             return named;
@@ -148,10 +152,9 @@ namespace {
         return true;
     }
 
-    // The scenes' bits as last read, to tell the new ones, and where they were.
+    // The scenes' bits as last read, to tell the new ones.
     std::vector<bool> last_bits(scene_count, false);
     bool have_bits = false;
-    uint32_t last_pointer = 0;
     // What the save had before it was played (read at the menus, or loaded at once): reaching those again
     // earns nothing. Only a bit set in play, past this, unlocks.
     std::vector<bool> baseline(scene_count, false);
@@ -336,8 +339,9 @@ void conker::local_achievements::game_frame(uint8_t* rdram) {
     std::memcpy(&scene_in_play, rdram + (scene_in_play_address - 0x80000000), sizeof(scene_in_play));
     const bool at_menu = scene_in_play == scene_logos || scene_in_play == scene_opening || scene_in_play == scene_bar_menu;
     // Not something done in play: at the menus, the save's data read in (many bits at once), or another save's
-    // (bits cleared, a new game; or the bits elsewhere).
-    const bool loaded = at_menu || new_bits > quiet_threshold || cleared || pointer != last_pointer;
+    // (bits cleared). The pointer moving isn't: the game moves the bits about its heap as scenes load (measured:
+    // a new address at nearly every scene, with the bits as they were).
+    const bool loaded = at_menu || new_bits > quiet_threshold || cleared;
 
     int reached_count = 0;
     for (uint32_t scene = 0; scene < scene_count; scene++) {
@@ -353,11 +357,17 @@ void conker::local_achievements::game_frame(uint8_t* rdram) {
 
     const bool was_every = have_bits && every_scene_reached(last_bits);
     last_bits = bits;
-    last_pointer = pointer;
     have_bits = true;
     if (loaded) {
         // What the save already had: it counts for nothing. A new game (bits cleared) starts it over.
-        baseline = cleared ? bits : merged(baseline, bits);
+        // A new game (bits cleared to a few: 0x00, 0x02, 0x03 and 0xBF, the opening's, set at the menu) starts
+        // the baseline empty, so starting the story counts once play begins; another save's, at what it has.
+        if (cleared) {
+            baseline = reached_count <= new_game_bits ? std::vector<bool>(scene_count, false) : bits;
+        }
+        else {
+            baseline = merged(baseline, bits);
+        }
         return;
     }
 
@@ -395,6 +405,15 @@ extern "C" void conker_stat_change(uint8_t* rdram, recomp_context* ctx) {
     int32_t scene = 0, cash = 0;
     std::memcpy(&scene, rdram + (0x800BE9F0 - 0x80000000), sizeof(scene));
     std::memcpy(&cash, rdram + (0x800D2148 - 0x80000000), sizeof(cash));
+    // The end of the game gives Conker a million: What a Day, if it's in play (not a menu, where a save's cash
+    // is put back).
+    if ((what == 9 || what == 10) && amount >= 1000000 && scene != scene_logos && scene != scene_opening && scene != scene_bar_menu) {
+        for (size_t i = 0; i < achievement_count; i++) {
+            if (std::strcmp(achievement_list[i].id, "credits") == 0 && unlock(i)) {
+                conker::notices::show(std::string("Achievement unlocked: ") + achievement_list[i].title);
+            }
+        }
+    }
     std::printf("[cash] %s %d in scene 0x%02X (cash was %d; this run: %lld added, %lld spent)%s\n",
         what == 9 ? "set to" : what == 10 ? "add" : "spend", amount, scene, cash, (long long)added, (long long)taken,
         recomp::mods::is_mod_enabled("conker_cheats") ? " [cheats mod on]" : "");
