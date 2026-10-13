@@ -35,6 +35,8 @@ yourself instead, read on.
 - Mod support (`.nrm` mods: function patches and hooks). Three mods are
   included: **Skip Intro**, **Skip Any Cutscene** and **Cheats**.
 - Texture packs (RT64's `.rtz`), for HD textures and other replacements.
+- Save states: save anywhere with F5 and load with F7, in nine slots
+  ([how to use them, and how they work](docs/save-states.md)).
 
 ## Status
 
@@ -216,12 +218,14 @@ Run `host/build/ConkerRecomp` (Linux and macOS) or `host\build-win\ConkerRecomp.
   has its options by tab: General (deadzone, rumble), Camera (turning, the free
   camera, field of view, aiming with the stick), Mouse & Gyro, Graphics
   (resolution, aspect ratio, anti-aliasing, frame rate, texture packs), Controls,
-  Sound, RetroAchievements and Mods. The tabs scroll sideways when they don't all
-  fit.
+  Sound and Mods. The tabs scroll sideways when they don't all fit.
 - Saves, settings and the stored ROM live in `~/.config/ConkerRecompiled` on
   Linux, `~/Library/Application Support/ConkerRecompiled` on macOS and
   `%LOCALAPPDATA%\ConkerRecompiled` on Windows. Put an empty `portable.txt` next
   to the executable to keep them there instead.
+- **Save states**: F5 saves the game exactly as it is, F7 loads it back, F6
+  picks the next of the nine slots. They never touch the game's own saves. See
+  [docs/save-states.md](docs/save-states.md).
 - Default keyboard controls: move with WASD, A = Space, B = Left Shift,
   Z = Q, L = E, R = R, Start = Enter, C buttons = arrow keys, D-pad = IJKL.
   Everything can be remapped in Controls.
@@ -236,7 +240,9 @@ Run `host/build/ConkerRecomp` (Linux and macOS) or `host\build-win\ConkerRecomp.
 A ROM hack that only changes the game's assets (its audio, textures, models or
 text), such as an uncensored patch that restores the bleeped words, plays like the
 US ROM. The recompiled code only comes from the ROM's code, which has to be the US
-ROM's, so hacks that change the game's code are refused.
+ROM's, so hacks that change the game's code are refused. A hack that repacks the
+game's compressed code without changing it, as the Russian fan translation does, is
+checked unpacked and plays too (**Version: US Russian**).
 
 The launcher's **Version** option says which ROM is in play, with its region (for
 example **Version: US Original** or **Version: US Uncensored**), and so does the

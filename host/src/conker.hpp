@@ -151,6 +151,12 @@ namespace conker {
         // Whether the player's character is aiming the shotgun (state 0x3B), where Z (the laser sight) makes
         // C-Left and C-Right turn the aim: the swapped left stick leaves them out while Z is held (frontend.cpp).
         bool z_turns_aim(int player);
+        // The bank's slow motion leaps (issue #85): from the game thread as a frame starts, whether
+        // player 1's Conker is leaping; whether he was, from any thread; and, from the input thread,
+        // the mouse's tilt added to player 1's stick while he is (the mouse moves the crosshair).
+        void leap_frame(uint8_t* rdram);
+        bool leaping_now();
+        void leap_stick(float& x, float& y);
         // Camera: Invert Turning, for the free camera's stick: turning (x) and tilting (y).
         void free_camera_invert(bool& x, bool& y);
         // Camera: Turning Speed, 1 at 100%.
@@ -197,7 +203,10 @@ namespace conker {
         void update();
     }
 
-    // achievements.cpp: RetroAchievements (a prototype; on with a login in retroachievements.txt).
+    // achievements.cpp: RetroAchievements (a prototype; on with a login in retroachievements.txt). Built in only
+    // with CONKER_RETROACHIEVEMENTS (host/CMakeLists.txt says why it's off); without it, these do nothing and
+    // there's no RetroAchievements tab.
+#if defined(CONKER_RETROACHIEVEMENTS)
     namespace achievements {
         // At start (frontend.cpp, once the config folder is known): logs in, if there's a login.
         void init();
@@ -207,10 +216,31 @@ namespace conker {
         // From the game thread, as the game starts a frame's display list: loads the game's
         // achievements once logged in, then checks them against the game's memory.
         void game_frame(uint8_t* rdram);
-        // From the launcher's init (frontend.cpp): recompui's UI exists now, for the unlock messages.
+    }
+#else
+    namespace achievements {
+        inline void init() {}
+        inline void add_tab() {}
+        inline void game_frame(uint8_t*) {}
+    }
+#endif
+
+    // notices.cpp: a line in the top-left corner for a few seconds, one at a time (an unlock, a save state's
+    // "State saved"...).
+    namespace notices {
+        // From any thread. With replace, it's shown at once in place of what's shown (and of an earlier one to
+        // replace), as a save state's slot is as F6 is pressed again and again.
+        void show(const std::string& text, bool replace = false);
+        // From the launcher's init (frontend.cpp): recompui's UI exists now, so the line's context can be made.
         void on_ui_ready();
-        // On the main thread (update_gfx): shows the unlock messages, one at a time.
+        // On the main thread (update_gfx): shows the waiting lines, one at a time, once the game has started.
         void update();
+    }
+
+    // save_states.cpp: save states (issue #94), F5 to save, F7 to load, F6 for the next slot.
+    namespace save_states {
+        // At start (frontend.cpp): the keys, and the runtime's idle moment that states are taken at.
+        void init();
     }
 
     // fps_counter.cpp: Show FPS, the frame rate counter.

@@ -207,6 +207,10 @@ N64Recomp (`n64recomp.patch`):
 - `N64RECOMP_KEEP_GOING=1` reports every failing function.
 - division by zero gives the VR4300's results instead of trapping on the host
   (the hand-written `func_150A3CBC` divides by zero during the attract mode).
+- calls (`jal`, `jalr`, branch-and-link) set `$ra` to their return address, as
+  the CPU does (`emit_set_link_register`, in the C and live generators). Save
+  states walk a waiting thread's calls through the game's code by it, so a
+  state loads in another build ([docs/save-states.md](../docs/save-states.md)).
 
 N64ModernRuntime (`n64modernruntime.patch`):
 - PI DMA completion posts the request's `OSIoMesg` pointer, as libultra does,
@@ -220,6 +224,22 @@ N64ModernRuntime (`n64modernruntime.patch`):
   `__osRunningThread` pointing at the running thread (Conker reads it
   directly).
 - GCC-only warning flags are skipped under MSVC.
+- Save states (issue #94; [docs/save-states.md](../docs/save-states.md) tells
+  how they work). `ultramodern/src/save_states.cpp` keeps the game's threads,
+  each with where it last waited (a hash of its native call stack, as offsets
+  into the program, and of the wait's own values), and calls the host at safe
+  points: the idle thread in `pause_self`, or a thread in `osRecvMesg` with no
+  other ready to run. `librecomp/src/save_states.cpp` takes and loads a state
+  (the 8MB of game memory, each thread's `recomp_context`, the clock and
+  timers, the VI and event state), loading only where every thread waits as it
+  did in the state: in the same calls through the game's code (walked from
+  `$ra` by the functions' prologues, `find_loaded_function` and `get_code_rom`)
+  and, in the same build, the same native calls. For it: `run_thread_function` registers each thread's
+  context; RSP tasks count as in flight until their last message is sent; the
+  game's clock can be moved (an offset), so it goes on from a state's time; and
+  the timer thread keeps its running timers in a list under a lock (it kept a
+  set ordered by deadlines in game memory, which a load overwrites), held while
+  a state is taken or loaded.
 - A mod's patch keeps the patched page executable while it's written. It was
   made read-write only, and another thread running code on the same page (RT64's
   idle thread, every millisecond) crashed as the game started with mods on.
@@ -298,6 +318,21 @@ left edge the same way. A piece near or past it is drawn that many whole pixels
 to the right, so the game doesn't clamp it, and moved back as an extended
 rectangle. They write no sync to hold the enable, so it's put early in the
 frame, in place of the pipe sync each camera's pass starts with.
+
+`func_15095D34` also draws the tickly bees of Windy's pollination quest (issue
+#101). Whether a piece is drawn at all is decided first by `func_15095B08`, which
+works out its rectangle on screen and flags it visible only where that overlaps
+the camera's 4:3 left and right bounds (+0x2C, +0x30), so the bees vanished
+beside the 4:3 frame. Those bounds are widened by the sprite cull's margin before
+its two compares (`conker_widen_piece_cull_left`, `_right`). The bees over the
+hive are `func_15130A9C`'s sprites, already widened.
+
+The same bees were drawn behind the sunflower they circle, also on the N64.
+`func_15168118` draws each with `func_15095760`, which gives the rectangle a
+depth (`G_SETPRIMDEPTH`) and a render mode that's depth-tested but doesn't write
+depth, and the flower is drawn after them. A bee now writes its depth: its render
+mode gets `Z_UPD` and the alpha compare's threshold, so its rectangle's
+transparent pixels write nothing (`render_fixes.cpp`, `conker_bee_depth`).
 
 A camera's background fill (`func_151103C8`, its colour under everything it
 draws) ends exactly at the scissor's right edge, and RT64 lines such a rectangle
@@ -513,7 +548,10 @@ fullscreen at 4K (issue #21). `texture_packs.cpp` registers RT64 texture packs (
 files and folders with an `rt64.json`) with the mod loader and adds the Texture
 Packs settings tab, and `gliden64_packs.cpp` unpacks GLideN64 texture caches
 (`.htc`) in the mods folder into packs RT64 matches by their Rice names (see RT64's
-changes above). `mouse_camera.cpp`
+changes above). `save_states.cpp` is save states' keys (F5, F7 and F6 for
+the slot), slots and files, done at the runtime's safe points (see the
+N64ModernRuntime changes above and [docs/save-states.md](../docs/save-states.md)).
+`mouse_camera.cpp`
 is a free orbit camera around Conker, turned by the mouse and, with Right Stick:
 Free Camera, the right stick, which then presses no C-buttons while it turns it
 (`frontend.cpp`); its settings, with Camera: Field of View, are in
@@ -578,6 +616,22 @@ or sound). On Linux the window build creates the SDL window with
 and the recompiled audio microcode is compiled with `-msse4.1`. A crash prints a backtrace (SIGSEGV on Linux; on
 Windows an unhandled-exception filter with DbgHelp, which also writes
 `crash.log` next to the exe and shows a message box).
+
+The bank robbery's slow motion leaps from a B pad (issue #85): the leap keeps
+the follow camera as it is when walking, and the stick turns into Conker's
+movement as ever, turning him in the air and his guns with him; the crosshair is
+where they point. The C-buttons turn the camera, as in the original game, so with
+Right Stick: Free Camera off the right stick does too. The mouse orbit turned the
+camera there and never moved the crosshair. In a leap (`look_aim.cpp`: Conker in
+the bank's state 0x96, +0x4 of his object, with the leap's animation 0x20F or
+0x20E) the mouse is the stick: its movement moves a tilt, kept where the mouse
+leaves it, added to player 1's (`frontend.cpp`), and the orbit doesn't run. The
+view is raised 110 units (`mouse_camera.cpp`), so it looks down past Conker
+instead of through him: only the view's eye, raised as it's copied from the eye
+the camera wants (func_1512C490) and lowered back before the next update copies
+it back (func_15122C5C). Raising the eye wanted stacked up from frame to frame, or
+the game eased it back; the height it keeps above Conker (+0x344) isn't used in
+a leap.
 
 ## Mods
 
