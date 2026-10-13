@@ -29,6 +29,65 @@ extern "C" void conker_light_glow_depth(uint8_t* rdram, recomp_context* ctx) {
     ctx->r11 = 0;
 }
 
+// Sprite pieces less than a pixel across (the smoke puffs over Windy's beehive, as one starts).
+//
+// func_15095D34 draws a piece of a sprite (speech bubbles, the tickly bees, puffs of smoke...) as a
+// rectangle: its width and height (D_800D2C70 and D_800D2C74, floats the caller sets) are truncated to
+// whole pixels, and the texture's step across it is divided by them. The compiler guards each division
+// with a break (break 7, divide by zero), and the N64 stops there as the recompiled game does: a piece
+// under a pixel wide crashed the game (do_break from func_15095D34, with func_1516D738's puffs), on a
+// build without #101's cull for the tickly bees. Where the piece comes from isn't known: the sprite culls
+// that draw what's beside the 4:3 frame in widescreen (widescreen.cpp) may let it through, or the
+// original game may send one too, as rarely. A size that truncates to 0 (between -1 and 1) is made a
+// pixel, drawn as one, not a crash; others, negative ones among them, are left as they are.
+// func_15095D34 at 0x15095D58, with the width in $f0 and the height in $f2, before they're truncated.
+extern "C" void conker_sprite_piece_size(uint8_t* rdram, recomp_context* ctx) {
+    if (ctx->f0.fl > -1.0f && ctx->f0.fl < 1.0f) {
+        ctx->f0.fl = 1.0f;
+    }
+    if (ctx->f2.fl > -1.0f && ctx->f2.fl < 1.0f) {
+        ctx->f2.fl = 1.0f;
+    }
+}
+
+// The tickly bees in front of the sunflower (issue #101; Windy's pollination quest).
+//
+// func_15168118 draws each bee by calling func_15095760 (0x15168640), which gives the bee a depth from its place in
+// the scene (G_SETPRIMDEPTH) and draws it as a rectangle (func_15095D34), with a render mode (func_15142C10's) that
+// blends it over what's there, depth-tested against that depth but not writing it. The sunflower the bees circle is
+// drawn after them, so nothing stopped it from being drawn over a bee nearer the camera than it (measured: with the
+// bees' depth made the nearest, the flower was still drawn over them). The N64 drew it so too; here a bee writes its
+// depth, so what's drawn after it, the flower among it, is hidden behind it where the bee is nearer and drawn over it
+// where it's further. Only the pixels the bee draws: the alpha compare's threshold (the blend colour's alpha, 0) drops
+// its rectangle's transparent ones, which would otherwise hide what's behind the bee as a rectangle.
+namespace {
+    bool drawing_bee = false;
+}
+
+// func_15168118 at 0x15168640, about to call func_15095760 for a bee, and at 0x15168648, back from it.
+extern "C" void conker_bee_begin(uint8_t* rdram, recomp_context* ctx) {
+    drawing_bee = true;
+}
+
+extern "C" void conker_bee_end(uint8_t* rdram, recomp_context* ctx) {
+    drawing_bee = false;
+}
+
+// func_15095760 at 0x15095878, about to store the depth of a G_SETPRIMDEPTH at $v1: for a bee, its render mode
+// (the G_RDPSETOTHERMODE, 0xEF, written a few commands before) gets Z_UPD (0x20) and the alpha compare's threshold (0x1).
+extern "C" void conker_bee_depth(uint8_t* rdram, recomp_context* ctx) {
+    if (!drawing_bee) {
+        return;
+    }
+    for (int i = 1; i <= 8; i++) {
+        const gpr command = ctx->r3 - i * 8;
+        if (((uint32_t)MEM_W(0, command) >> 24) == 0xEF) {
+            MEM_W(4, command) = (int32_t)((uint32_t)MEM_W(4, command) | 0x21);
+            break;
+        }
+    }
+}
+
 // func_1510FEA0 at 0x1510FFA4 (it starts each frame's display list): $t8 is D_800BE635, which
 // decides whether the frame is cleared to black before it is drawn. Level setup clears the
 // flag, since the level and sky are meant to cover the screen; where they don't (such as with
