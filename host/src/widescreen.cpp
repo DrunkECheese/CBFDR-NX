@@ -224,7 +224,7 @@ extern "C" void conker_frame_dl_begin(uint8_t* rdram, recomp_context* ctx) {
     conker::shadows::game_frame();
     conker::look_aim::leap_frame(rdram);
 #if defined(CONKER_RT64)
-    conker::achievements::game_frame(rdram);
+    conker::local_achievements::game_frame(rdram);
 #endif
 #if defined(CONKER_RT64)
     // Overscan Borders: the game's 3D and its rectangles stop 2 pixels short of each side of the frame

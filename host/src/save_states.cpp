@@ -246,6 +246,7 @@ namespace {
         switch (result) {
             case recomp::save_states::LoadResult::Loaded:
                 log_line("[load] slot %d loaded after %u tries", request_slot, attempts);
+                conker::local_achievements::state_loaded();
                 conker::notices::show("Loaded the state in slot " + std::to_string(request_slot));
                 finish();
                 break;
