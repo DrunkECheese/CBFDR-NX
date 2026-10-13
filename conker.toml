@@ -746,6 +746,13 @@ func = "func_15019464"
 before_vram = 0x150194F8
 text = "{ extern void conker_camera_pass_sync(uint8_t*, recomp_context*); conker_camera_pass_sync(rdram, ctx); }"
 
+# A sprite piece under a pixel across (host/src/render_fixes.cpp): its width ($f0) and height ($f2) are
+# loaded, and are made a pixel before func_15095D34 divides by them, as a crash was.
+[[patches.hook]]
+func = "func_15095D34"
+before_vram = 0x15095D58
+text = "{ extern void conker_sprite_piece_size(uint8_t*, recomp_context*); conker_sprite_piece_size(rdram, ctx); }"
+
 # After the piece's left edge is loaded ($f12, D_800D2C78; its right edge is that plus a width),
 # and where both of its returns meet ($v0 the end of what it wrote).
 [[patches.hook]]
