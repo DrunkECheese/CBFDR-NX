@@ -75,8 +75,8 @@ namespace {
         return folder() / ("slot" + std::to_string(slot) + ".state");
     }
 
-    // TEMP-DEBUG (the prototype): savestates_log.txt beside the settings, with each save and load, where
-    // each thread waited, and why one couldn't be done.
+    // savestates_log.txt beside the settings, while save states are new (docs/save-states.md, Debugging): each
+    // save and load, where each thread waited, and why one couldn't be done. Written from the first save or load.
     std::mutex log_mutex;
     void log_line(const char* format, ...) {
         static FILE* file = std::fopen((recomp::get_config_path() / "savestates_log.txt").string().c_str(), "w");
