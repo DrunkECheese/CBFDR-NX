@@ -1,6 +1,6 @@
-// Achievements: the program's own, earned as you play and kept on this computer (no account, no server). They're
-// not RetroAchievements' (achievements.cpp, held back from the releases): the titles, descriptions and the way
-// each is detected are this project's own.
+// Achievements: the program's own, earned as you play and kept on this computer (no account, no server). The
+// titles, descriptions and the way each is detected are this project's own. (RetroAchievements doesn't accept
+// recompilations, so its client, once a prototype here, was removed.)
 //
 // What they go by: the game's scenes. The game has a table of 204 of them (D_80087430, 20 bytes each: a name or
 // none, a number in the low bits of the second word, and the scene the game loads in the third word's top

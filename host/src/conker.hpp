@@ -203,28 +203,6 @@ namespace conker {
         void update();
     }
 
-    // achievements.cpp: RetroAchievements (a prototype; on with a login in retroachievements.txt). Built in only
-    // with CONKER_RETROACHIEVEMENTS (host/CMakeLists.txt says why it's off); without it, these do nothing and
-    // there's no RetroAchievements tab.
-#if defined(CONKER_RETROACHIEVEMENTS)
-    namespace achievements {
-        // At start (frontend.cpp, once the config folder is known): logs in, if there's a login.
-        void init();
-        // With the other settings tabs (conker_config.cpp): the RetroAchievements tab, to log in and
-        // out and see the game's achievements.
-        void add_tab();
-        // From the game thread, as the game starts a frame's display list: loads the game's
-        // achievements once logged in, then checks them against the game's memory.
-        void game_frame(uint8_t* rdram);
-    }
-#else
-    namespace achievements {
-        inline void init() {}
-        inline void add_tab() {}
-        inline void game_frame(uint8_t*) {}
-    }
-#endif
-
     // local_achievements.cpp: the program's own achievements, for reaching the game's scenes, kept on this computer.
     namespace local_achievements {
         // At start (frontend.cpp, once the config folder is known): reads the unlocks so far.

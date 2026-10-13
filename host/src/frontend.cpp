@@ -327,7 +327,6 @@ namespace {
         conker::fps_counter::on_ui_ready();
         conker::notices::on_ui_ready();
         conker::local_achievements::init();
-        conker::achievements::init();
         conker::reticle::on_ui_ready();
         options->add_start_game_or_load_rom_option();
         version_option = options->add_option("Version", on_version_selected);

@@ -7,9 +7,6 @@
 // context is shown, so a line shown at the launcher kept the screen black until it went. And the context is
 // only made once the launcher's init has run (on_ui_ready): recompui's UI is made on the render thread as RT64
 // starts, and update_gfx can run before that.
-//
-// (This was RetroAchievements' message line, achievements.cpp, made a part of its own so what's built without
-// RetroAchievements can show its lines too.)
 
 #include <atomic>
 #include <chrono>
