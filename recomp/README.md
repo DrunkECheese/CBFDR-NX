@@ -207,6 +207,10 @@ N64Recomp (`n64recomp.patch`):
 - `N64RECOMP_KEEP_GOING=1` reports every failing function.
 - division by zero gives the VR4300's results instead of trapping on the host
   (the hand-written `func_150A3CBC` divides by zero during the attract mode).
+- calls (`jal`, `jalr`, branch-and-link) set `$ra` to their return address, as
+  the CPU does (`emit_set_link_register`, in the C and live generators). Save
+  states walk a waiting thread's calls through the game's code by it, so a
+  state loads in another build ([docs/save-states.md](../docs/save-states.md)).
 
 N64ModernRuntime (`n64modernruntime.patch`):
 - PI DMA completion posts the request's `OSIoMesg` pointer, as libultra does,
@@ -220,6 +224,22 @@ N64ModernRuntime (`n64modernruntime.patch`):
   `__osRunningThread` pointing at the running thread (Conker reads it
   directly).
 - GCC-only warning flags are skipped under MSVC.
+- Save states (issue #94; [docs/save-states.md](../docs/save-states.md) tells
+  how they work). `ultramodern/src/save_states.cpp` keeps the game's threads,
+  each with where it last waited (a hash of its native call stack, as offsets
+  into the program, and of the wait's own values), and calls the host at safe
+  points: the idle thread in `pause_self`, or a thread in `osRecvMesg` with no
+  other ready to run. `librecomp/src/save_states.cpp` takes and loads a state
+  (the 8MB of game memory, each thread's `recomp_context`, the clock and
+  timers, the VI and event state), loading only where every thread waits as it
+  did in the state: in the same calls through the game's code (walked from
+  `$ra` by the functions' prologues, `find_loaded_function` and `get_code_rom`)
+  and, in the same build, the same native calls. For it: `run_thread_function` registers each thread's
+  context; RSP tasks count as in flight until their last message is sent; the
+  game's clock can be moved (an offset), so it goes on from a state's time; and
+  the timer thread keeps its running timers in a list under a lock (it kept a
+  set ordered by deadlines in game memory, which a load overwrites), held while
+  a state is taken or loaded.
 - A mod's patch keeps the patched page executable while it's written. It was
   made read-write only, and another thread running code on the same page (RT64's
   idle thread, every millisecond) crashed as the game started with mods on.
@@ -528,7 +548,10 @@ fullscreen at 4K (issue #21). `texture_packs.cpp` registers RT64 texture packs (
 files and folders with an `rt64.json`) with the mod loader and adds the Texture
 Packs settings tab, and `gliden64_packs.cpp` unpacks GLideN64 texture caches
 (`.htc`) in the mods folder into packs RT64 matches by their Rice names (see RT64's
-changes above). `mouse_camera.cpp`
+changes above). `save_states.cpp` is save states' keys (F5, F7 and F6 for
+the slot), slots and files, done at the runtime's safe points (see the
+N64ModernRuntime changes above and [docs/save-states.md](../docs/save-states.md)).
+`mouse_camera.cpp`
 is a free orbit camera around Conker, turned by the mouse and, with Right Stick:
 Free Camera, the right stick, which then presses no C-buttons while it turns it
 (`frontend.cpp`); its settings, with Camera: Field of View, are in

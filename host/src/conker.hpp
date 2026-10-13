@@ -237,6 +237,12 @@ namespace conker {
         void update();
     }
 
+    // save_states.cpp: save states (issue #94), F5 to save, F7 to load, F6 for the next slot.
+    namespace save_states {
+        // At start (frontend.cpp): the keys, and the runtime's idle moment that states are taken at.
+        void init();
+    }
+
     // heap_report.cpp (TEMP-DEBUG, issue #98): Rare's heap, in a line: its size, what's used and
     // free, and where its blocks' links go wrong, if they do.
     namespace heap {
