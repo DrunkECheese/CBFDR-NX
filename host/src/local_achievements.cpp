@@ -155,6 +155,8 @@ namespace {
     // The scenes' bits as last read, to tell the new ones.
     std::vector<bool> last_bits(scene_count, false);
     bool have_bits = false;
+    // A save state was loaded (from the safe point's thread): the next bits read are its, not reached in play.
+    std::atomic<bool> state_just_loaded = false;
     // What the save had before it was played (read at the menus, or loaded at once): reaching those again
     // earns nothing. Only a bit set in play, past this, unlocks.
     std::vector<bool> baseline(scene_count, false);
@@ -306,6 +308,10 @@ void conker::local_achievements::init() {
     list_version++;
 }
 
+void conker::local_achievements::state_loaded() {
+    state_just_loaded = true;
+}
+
 void conker::local_achievements::add_tab() {
     recompui::config::create_tab("Achievements", "achievements",
         [](recompui::ContextId context, recompui::Element* parent) {
@@ -324,6 +330,13 @@ void conker::local_achievements::game_frame(uint8_t* rdram) {
     for (uint32_t scene = 0; scene < scene_count; scene++) {
         const uint32_t address = pointer + scene / 8;
         bits[scene] = (rdram[(address - 0x80000000) ^ 3] >> (scene % 8)) & 1;
+    }
+    // Just after a save state loaded: what it has is the baseline, changed or not.
+    if (state_just_loaded.exchange(false)) {
+        baseline = merged(baseline, bits);
+        last_bits = bits;
+        have_bits = true;
+        return;
     }
     if (have_bits && bits == last_bits) {
         return;

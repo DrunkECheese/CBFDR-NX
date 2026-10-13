@@ -211,6 +211,9 @@ namespace conker {
         void add_tab();
         // From the game thread, as the game starts a frame's display list: unlocks what the save has reached.
         void game_frame(uint8_t* rdram);
+        // Save states (save_states.cpp), as one is loaded: the scenes it has are put back with the game's memory,
+        // so they count for nothing, as a save's do.
+        void state_loaded();
     }
 
     // notices.cpp: a line in the top-left corner for a few seconds, one at a time (an unlock, a save state's
