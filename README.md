@@ -26,15 +26,36 @@ yourself instead, read on.
 
 - Runs natively on Windows (Direct3D 12 or Vulkan), Linux (Vulkan) and macOS
   (Metal), rendered by RT64. Supports higher resolutions, widescreen,
-  anti-aliasing and high frame-rate presentation.
-- Game controllers and keyboard, with remappable controls and rumble.
+  anti-aliasing and high frame-rate presentation, with Conker, his shadow and the
+  camera interpolated between the game's frames.
+- Widescreen across gameplay, menus, cutscenes (or 4:3 cutscenes, with the
+  **Cutscene Aspect Ratio** option), split screen and the pause screen, with the
+  world drawn and culled for the wider view. **Overscan Borders** hides the N64's
+  black border down each side.
+- Game controllers and keyboard, with remappable controls (mouse buttons too) and
+  rumble settings (motor, style and strength). N64 pads and adapters for real N64
+  controllers are built in, and each controller gets its own player in
+  multiplayer.
+- Mouse and gyro aiming, a free camera on the right stick (or the mouse) that
+  stays out of walls, camera turning speed and inversion, and a Field of View
+  setting.
+- An aiming **Reticle**, a green ring like Live & Reloaded's, and **Swap Sticks**
+  and **Lock-On** options for aiming.
 - Full audio: music, sound effects and the voice acting.
 - Saving (EEPROM), stored per user.
 - A launcher with settings, controls and a mod menu (RecompFrontend, as in
   Zelda 64: Recompiled and Banjo: Recompiled).
+- The game's reflective surfaces (Conker's glass, the logo's sheen) and its point
+  lights (the bar's lantern, the N64 logo), drawn as on the N64.
+- **Conker's Detail** keeps Conker on his most detailed model, and **Show FPS**
+  puts a frame rate counter in the corner.
+- Achievements, the program's own, for reaching the game's scenes.
+- ROM hacks that only change the game's assets, such as the uncensored and the
+  Russian translation ROMs, with the launcher switching between them.
 - Mod support (`.nrm` mods: function patches and hooks). Three mods are
   included: **Skip Intro**, **Skip Any Cutscene** and **Cheats**.
-- Texture packs (RT64's `.rtz`), for HD textures and other replacements.
+- Texture packs (RT64's `.rtz`, and GLideN64's `.htc`), for HD textures and
+  other replacements.
 - Save states: save anywhere with F5 and load with F7, in nine slots
   ([how to use them, and how they work](docs/save-states.md)).
 
@@ -42,11 +63,6 @@ yourself instead, read on.
 
 The game is playable, and has been played through to the end. Known issues:
 
-- Widescreen: the pause menu's blurred background is the 4:3 frame scaled up to
-  the full width, so its top and bottom are cropped.
-- Environment-mapped (reflective) surfaces render without their reflection texture.
-- Frame rates above 30: characters snap once when the game changes how many parts
-  it draws them with, a few times a minute, and the camera can blend across a cut.
 - Only the US ROM is supported (and ROM hacks that only change its assets: see
   [ROM hacks](#rom-hacks)).
 - Linux: the build and the game have been tested on Ubuntu 24.04 under WSL, with
