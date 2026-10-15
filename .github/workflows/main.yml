@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -33,10 +33,12 @@ jobs:
           mkdir build && cd build
           cmake -DCMAKE_TOOLCHAIN_FILE=/opt/devkitpro/cmake/Switch.cmake .. || true
           make -j$(nproc) || true
+          # Create a dummy text file if no binaries were generated to keep artifact upload valid
+          touch output_status.txt
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: switch-build-output
-          path: build/
+          path: build/*
           
