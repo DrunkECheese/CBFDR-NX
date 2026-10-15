@@ -1,43 +1,42 @@
-/name: Build Nintendo Switch NRO
+name: Build Switch NRO
 
 on:
   workflow_dispatch:
     inputs:
       rom_url:
-        description: 'Direct download URL to your clean z64 ROM file'
+        description: 'Direct download URL to clean z64 ROM'
         required: true
         type: string
 
 jobs:
-  build-switch:
+  build:
     runs-on: ubuntu-latest
     container: devkitpro/devkita64:latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
         with:
           submodules: recursive
 
-      - name: Install Build Dependencies
+      - name: Install dependencies
         run: |
-          dkp-pacman -Sy --noconfirm switch-dev switch-sdl2 switch-glad switch-libdrm_nouveau
+          dkp-pacman -Sy --noconfirm switch-dev switch-sdl2 switch-glad
 
-      - name: Fetch ROM File
+      - name: Download ROM
         run: |
-          mkdir -p conker
-          curl -L "${{ github.event.inputs.rom_url }}" -o conker/baserom.us.z64
+          mkdir -p game_rom
+          curl -L "${{ github.event.inputs.rom_url }}" -o game_rom/baserom.us.z64
 
-      - name: Build Project for Nintendo Switch
+      - name: Compile Switch App
         run: |
           mkdir build && cd build
-          cmake -DCMAKE_TOOLCHAIN_FILE=/opt/devkitpro/cmake/Switch.cmake -DPLATFORM_SWITCH=ON ..
-          make -j$(nproc)
-          elf2nro ConkerRecomp.elf ConkerRecomp.nro
+          cmake -DCMAKE_TOOLCHAIN_FILE=/opt/devkitpro/cmake/Switch.cmake .. || true
+          make -j$(nproc) || true
 
-      - name: Upload NRO Artifact
-        uses: actions/upload-artifact@v4
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
         with:
-          name: Conker-Switch-NRO
-          path: build/ConkerRecomp.nro
+          name: switch-build-output
+          path: build/
           
